@@ -24,6 +24,7 @@ window.loadMessages = async (guildId, channelId, before = null) => {
     }
     // Scroll infini : observer sur le 1er message
     setupScrollObserver(guildId, channelId);
+    initScrollToBottomBtn();
     // Marquer comme lu
     markChannelRead(channelId);
   } catch (err) { showToast(err.message, 'error'); }
@@ -145,18 +146,31 @@ window.renderContentAdvanced = (content) => {
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
   // Inline code `...`
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-  // Mentions @username
+  // Mentions @username + @everyone
+  html = html.replace(/@(everyone|here)/g, '<span class="mention mention-everyone">@$1</span>');
   html = html.replace(/@(\w{2,32})/g, (match, name) => {
+    if (name === 'everyone' || name === 'here') return match; // déjà traité
     const isSelf = name === State.user?.username;
     return `<span class="mention${isSelf?' mention-self':''}" onclick="showProfilePopupByName('${name}')">@${name}</span>`;
   });
   // Images inline (URLs d'image)
-  html = html.replace(/(https?:\/\/[^\s<]+\.(?:jpg|jpeg|png|gif|webp)(\?[^\s<]*)?)/gi,
-    (url) => `<img src="${url}" class="msg-image" onclick="openLightbox('${url}')" style="max-width:400px;max-height:300px;border-radius:var(--radius);margin-top:4px;cursor:zoom-in;display:block" loading="lazy" />`
-  );
-  // URLs (non-images)
+  // Images : URLs absolues ET relatives /uploads/
+  const imgRegex = /((?:https?:\/\/[^\s<]+|(?:\/uploads\/[^\s<"]+))\.(?:jpg|jpeg|png|gif|webp)(?:\?[^\s<]*)?)/gi;
+  html = html.replace(imgRegex, (url) => {
+    const safeUrl = url.replace(/'/g, '%27');
+    return `<div class="msg-image-wrapper" style="margin-top:6px;display:inline-block;max-width:400px">
+      <img src="${safeUrl}" class="msg-image" alt="image"
+        onclick="openLightbox('${safeUrl}')"
+        onload="this.parentElement.style.background='none'"
+        onerror="this.parentElement.innerHTML='<span style=\"color:var(--text-muted);font-size:12px\">⚠️ Image non disponible</span>'"
+        style="max-width:400px;max-height:300px;border-radius:var(--radius);cursor:zoom-in;display:block;
+               background:var(--bg-elevated)"
+        loading="lazy" title="Cliquer pour agrandir" />
+    </div>`;
+  });
+  // URLs texte (non-images)
   html = html.replace(/(https?:\/\/[^\s<"]+)/g, (url) => {
-    if (/\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(url)) return url; // déjà converti
+    if (/\.(jpg|jpeg|png|gif|webp)(?:\?|$)/i.test(url)) return url; // déjà converti
     return `<a href="${url}" target="_blank" rel="noopener">${url}</a>`;
   });
   return html;
@@ -169,6 +183,12 @@ window.extractUrls = (text) => {
   return [...new Set(matches)].slice(0, 2);
 };
 
+// Détecte si une URL est un lien d'invitation Hang Out
+window.extractInviteCode = (url) => {
+  const m = url.match(/\/invite\/([a-zA-Z0-9-]+)/) || url.match(/[?&]invite=([a-zA-Z0-9-]+)/);
+  return m ? m[1] : null;
+};
+
 window.loadOGPreviews = async (msgId, content) => {
   const urls = extractUrls(content);
   if (!urls.length) return;
@@ -177,6 +197,14 @@ window.loadOGPreviews = async (msgId, content) => {
 
   for (const url of urls) {
     try {
+      // ── Lien d'invitation Hang Out ────────────────────
+      const inviteCode = extractInviteCode(url);
+      if (inviteCode) {
+        await renderInviteCard(container, inviteCode);
+        continue;
+      }
+
+      // ── OG preview classique ──────────────────────────
       let data = ogCache.get(url);
       if (!data) {
         const res = await api.get(`/og?url=${encodeURIComponent(url)}`);
@@ -197,6 +225,84 @@ window.loadOGPreviews = async (msgId, content) => {
       `;
       container.appendChild(el);
     } catch (_) {}
+  }
+};
+
+// ── Carte d'invitation serveur ────────────────────────────
+const inviteCardCache = new Map();
+
+window.renderInviteCard = async (container, code) => {
+  try {
+    // Cache local pour éviter de refetch
+    let guild = inviteCardCache.get(code);
+    if (!guild) {
+      const res = await fetch(`/api/servers/invite/${code}`);
+      if (!res.ok) return;
+      guild = await res.json();
+      inviteCardCache.set(code, guild);
+    }
+
+    // Vérifier si l'user est déjà membre
+    const isMember = State.servers?.some(s => s.id === guild.id);
+
+    const card = document.createElement('div');
+    card.className = 'invite-card';
+
+    // Icône
+    const iconHtml = guild.icon
+      ? `<img src="${guild.icon}" class="invite-card-icon" alt="${escapeHtml(guild.name)}" />`
+      : `<div class="invite-card-icon" style="background:${avatarColor(guild.name)};display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:20px">${guild.name.slice(0,2).toUpperCase()}</div>`;
+
+    card.innerHTML = `
+      ${guild.banner
+        ? `<div class="invite-card-banner"><img src="${guild.banner}" alt="" /></div>`
+        : `<div class="invite-card-banner" style="background:linear-gradient(135deg,${avatarColor(guild.name)},#7289da)"></div>`}
+      <div class="invite-card-body">
+        ${iconHtml}
+        <div class="invite-card-info">
+          <div class="invite-card-name">${escapeHtml(guild.name)}</div>
+          <div class="invite-card-meta">
+            <span class="invite-card-dot online"></span>
+            <span><strong>${guild.online_count || 0}</strong> en ligne</span>
+            <span class="invite-card-dot offline" style="margin-left:8px"></span>
+            <span><strong>${guild.member_count}</strong> membre${guild.member_count > 1 ? 's' : ''}</span>
+          </div>
+          ${guild.description ? `<div class="invite-card-desc">${escapeHtml(guild.description)}</div>` : ''}
+        </div>
+        <button class="invite-card-btn ${isMember ? 'already' : ''}"
+          onclick="handleInviteCardClick('${code}', '${guild.id}', this)">
+          ${isMember ? 'Aller sur le serveur' : 'Rejoindre le serveur'}
+        </button>
+      </div>`;
+
+    container.appendChild(card);
+  } catch (_) {}
+};
+
+window.handleInviteCardClick = async (code, guildId, btn) => {
+  // Si déjà membre → naviguer vers le serveur
+  const existing = State.servers?.find(s => s.id === guildId);
+  if (existing) {
+    selectServer(existing);
+    return;
+  }
+
+  // Sinon rejoindre
+  btn.disabled = true;
+  btn.textContent = 'Connexion…';
+  try {
+    const server = await api.post(`/servers/join/${code}`);
+    const idx = State.servers.findIndex(s => s.id === server.id);
+    if (idx === -1) State.servers.push(server); else State.servers[idx] = server;
+    renderServersList();
+    selectServer(State.servers.find(s => s.id === server.id));
+    btn.textContent = 'Aller sur le serveur';
+    btn.classList.add('already');
+    showToast('Serveur rejoint !', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+    btn.disabled = false;
+    btn.textContent = 'Rejoindre le serveur';
   }
 };
 
@@ -223,6 +329,68 @@ window.scrollToMessage = (msgId) => {
   if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.style.background = 'rgba(88,101,242,0.15)'; setTimeout(() => el.style.background = '', 1500); }
 };
 
+
+// ── Scroll-to-bottom button ───────────────────────────────
+let _unreadBelow = 0;
+
+window.initScrollToBottomBtn = () => {
+  const container = document.getElementById('messages-container');
+  if (!container) return;
+
+  // Créer le bouton s'il n'existe pas
+  let btn = document.getElementById('scroll-to-bottom-btn');
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'scroll-to-bottom-btn';
+    btn.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+      <span id="scroll-unread-count" style="display:none"></span>`;
+    btn.onclick = () => {
+      scrollToBottom();
+      _unreadBelow = 0;
+      updateScrollBtn(true);
+    };
+    // Insérer dans #main juste avant la zone d'input
+    const chatInputZone = document.getElementById('chat-input-zone');
+    chatInputZone?.parentElement?.insertBefore(btn, chatInputZone);
+  }
+
+  // Observer le scroll
+  container.addEventListener('scroll', onChatScroll, { passive: true });
+  updateScrollBtn(true);
+};
+
+window.onChatScroll = () => {
+  const container = document.getElementById('messages-container');
+  if (!container) return;
+  const atBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 80;
+  if (atBottom) {
+    _unreadBelow = 0;
+    updateScrollBtn(true);
+  } else {
+    updateScrollBtn(false);
+  }
+};
+
+window.updateScrollBtn = (hide) => {
+  const btn = document.getElementById('scroll-to-bottom-btn');
+  if (!btn) return;
+  if (hide) {
+    btn.classList.remove('visible');
+  } else {
+    btn.classList.add('visible');
+    const badge = document.getElementById('scroll-unread-count');
+    if (badge) {
+      if (_unreadBelow > 0) {
+        badge.textContent = _unreadBelow > 99 ? '99+' : _unreadBelow;
+        badge.style.display = 'flex';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+  }
+};
+
 window.scrollToBottom = (instant = false) => {
   const c = document.getElementById('messages-container');
   if (instant) c.scrollTop = c.scrollHeight;
@@ -232,10 +400,17 @@ window.scrollToBottom = (instant = false) => {
 // ── Reactions ─────────────────────────────────────────────
 window.renderReactionsInner = (msgId, reactions) =>
   (reactions||[]).map(r => {
-    const users = r.users || r.Reactions || [];
-    const mine = users.some(u => (u.id || u.user_id) === State.user?.id);
-    return `<span class="reaction-chip ${mine?'mine':''}" onclick="sendReaction('${msgId}','${r.emoji}')">
-      ${r.emoji} <span class="count">${users.length}</span></span>`;
+    const users    = r.users || r.Reactions || [];
+    const mine     = users.some(u => (u.id || u.user_id) === State.user?.id);
+    const count    = users.length;
+    // Tooltip avec noms (max 5)
+    const names    = users.slice(0,5).map(u => u.username || '?').join(', ');
+    const tooltip  = count > 5 ? `${names} et ${count-5} autre(s)` : names;
+    return `<span class="reaction-chip ${mine?'mine':''}"
+      onclick="sendReaction('${msgId}','${r.emoji}')"
+      title="${escapeHtml(tooltip)}"
+      style="position:relative">
+      ${r.emoji} <span class="count">${count}</span></span>`;
   }).join('');
 
 window.sendReaction = (msgId, emoji) => window.socketClient?.emit('message:react', { messageId: msgId, emoji });
@@ -291,7 +466,13 @@ document.getElementById('cancel-reply-btn').addEventListener('click', () => {
 const messageInput = document.getElementById('message-input');
 const sendBtn = document.getElementById('send-btn');
 
-const sendMessage = () => {
+const sendMessage = async () => {
+  // Si une image est en attente, l'uploader d'abord
+  if (window._pendingImageFile) {
+    await uploadAndSendImage();
+    return;
+  }
+
   const content = messageInput.value.trim();
   if (!content || !State.currentChannel || !window.socketClient) return;
   window.socketClient.emit('message:send', {
@@ -325,11 +506,27 @@ messageInput.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 });
 
-// Auto-resize
+// Auto-resize + compteur de caractères
 messageInput.addEventListener('input', () => {
   messageInput.style.height = 'auto';
   messageInput.style.height = Math.min(messageInput.scrollHeight, 200) + 'px';
   handleMentionTyping();
+
+  // Compteur visible seulement si proche de la limite
+  const len = messageInput.value.length;
+  let counter = document.getElementById('msg-char-counter');
+  if (len > 1800) {
+    if (!counter) {
+      counter = document.createElement('div');
+      counter.id = 'msg-char-counter';
+      counter.style.cssText = 'position:absolute;bottom:6px;right:50px;font-size:11px;color:var(--text-muted);pointer-events:none;z-index:5';
+      document.querySelector('.chat-input-wrapper').appendChild(counter);
+    }
+    counter.textContent = `${2000 - len}`;
+    counter.style.color = len > 1950 ? 'var(--red)' : 'var(--text-muted)';
+  } else if (counter) {
+    counter.remove();
+  }
 });
 
 // Typing indicator

@@ -36,6 +36,7 @@ const usersRoutes      = require('./routes/users');
 const pinsRoutes          = require('./routes/pins');
 const guildSettingsRoutes = require('./routes/guildSettings');
 const guildAssetsRoutes   = require('./routes/guildAssets');
+const categoriesRoutes    = require('./routes/categories');
 const searchRoutes     = require('./routes/search');
 const threadsRoutes    = require('./routes/threads');
 const exportRoutes     = require('./routes/export');
@@ -108,6 +109,7 @@ app.use('/api/servers/:id/roles',                          rolesRoutes);
 app.use('/api/servers/:id',                                moderationRoutes);
 app.use('/api/servers/:guildId/channels/:channelId/pins',    pinsRoutes);
 app.use('/api/servers/:id/settings',                          guildSettingsRoutes);
+app.use('/api/servers/:id/categories',                        categoriesRoutes);
 app.use('/api/servers/:id',                                   guildAssetsRoutes);
 app.use('/api/servers/:id/search',                            searchRoutes);
 app.use('/api/servers/:guildId/channels/:channelId/export',   exportRoutes);
@@ -139,8 +141,25 @@ app.get('/invite/:code', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/invite.html'));
 });
 
+// ── Route reset password ──────────────────────────────────
+app.get('/reset-password', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/reset-password.html'));
+});
+
 // ── SPA fallback ──────────────────────────────────────────
 app.get('*', (req, res) => {
+  // Routes API → 404 JSON
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'Route introuvable' });
+  }
+  // Pages HTML connues
+  const htmlPages = ['/', '/invite', '/reset-password'];
+  const isPage = htmlPages.some(p => req.path === p || req.path.startsWith(p + '/'));
+  if (!isPage && req.path.includes('.') && !req.path.endsWith('.html')) {
+    // Asset manquant → 404
+    return res.status(404).sendFile(path.join(__dirname, '../client/404.html'));
+  }
+  // SPA
   res.sendFile(path.join(__dirname, '../client/index.html'));
 });
 

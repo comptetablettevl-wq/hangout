@@ -1,6 +1,8 @@
 window.renderMembersList = (server) => {
   if (!server?.members) return;
   const list = document.getElementById('members-list');
+  const onlineCount = server.members.filter(m => ['online','idle','dnd'].includes(m.user?.status)).length;
+  const totalCount  = server.members.length;
   const myMember = server.members?.find(m => (m.user?.id || m.user) === State.user?.id);
   const myRole = myMember?.role || 'member';
   const canMod = ['owner','admin','moderator'].includes(myRole);
@@ -45,9 +47,20 @@ window.renderMembersList = (server) => {
   };
 
   list.innerHTML = `
-    ${renderGroup('En ligne', [...grouped.online, ...grouped.idle, ...grouped.dnd])}
-    ${renderGroup('Hors ligne', grouped.offline)}
-  `;
+    <div style="padding:10px 8px 6px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">
+        <span style="color:var(--green)">●</span> ${onlineCount} en ligne
+        <span style="margin-left:8px;color:var(--text-muted)">● ${totalCount - onlineCount} hors ligne</span>
+      </div>
+      <input type="text" id="members-search-input" placeholder="Rechercher un membre..."
+        style="width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);
+               padding:5px 8px;font-size:13px;color:var(--text-primary);outline:none;font-family:var(--font)"
+        oninput="filterMembers(this.value)" />
+    </div>
+    <div id="members-list-inner" style="overflow-y:auto;flex:1">
+      ${renderGroup('En ligne', [...grouped.online, ...grouped.idle, ...grouped.dnd])}
+      ${renderGroup('Hors ligne', grouped.offline)}
+    </div>`;
 };
 
 const getRoleColor = (role) => {
@@ -170,3 +183,52 @@ document.addEventListener('click', (e) => {
     document.getElementById('members-toggle-btn').classList.remove('active');
   }
 });
+
+window.filterMembers = (query) => {
+  const q    = query.toLowerCase().trim();
+  const inner = document.getElementById('members-list-inner');
+  if (!inner || !State.currentServer?.members) return;
+
+  const members = State.currentServer.members;
+  const filtered = q ? members.filter(m => (m.user?.username || '').toLowerCase().includes(q)) : members;
+
+  const grouped = { online: [], idle: [], dnd: [], offline: [] };
+  filtered.forEach(m => { const s = m.user?.status || 'offline'; grouped[s]?.push(m); });
+
+  const roleOrder = { owner: 0, admin: 1, moderator: 2, member: 3 };
+  const sort = arr => arr.sort((a,b) => roleOrder[a.role] - roleOrder[b.role]);
+
+  const myMember = State.currentServer.members?.find(m => m.user?.id === State.user?.id);
+  const canMod = ['owner','admin','moderator'].includes(myMember?.role);
+  const canBan = ['owner','admin'].includes(myMember?.role);
+
+  const renderMember = (m) => {
+    const user   = m.user || {};
+    const status = user.status || 'offline';
+    const isMe   = user.id === State.user?.id;
+    return `
+      <div class="member-item" data-member-id="${user.id || ''}"
+        oncontextmenu="event.preventDefault();showMemberContextMenu(event,'${user.id}','${escapeHtml(user.username || '')}','${m.role}',${canMod},${canBan},${isMe})">
+        <div class="avatar-wrapper sm">
+          ${renderAvatar(user, 'avatar-md')}
+          <div class="status-dot ${status}"></div>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div class="member-name" style="${m.role !== 'member' ? 'color:' + getRoleColor(m.role) : ''}">${escapeHtml(user.username || 'Inconnu')}</div>
+          ${user.custom_status ? `<div style="font-size:11px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(user.custom_status)}</div>` : ''}
+        </div>
+        ${m.role !== 'member' ? `<span class="role-badge role-${m.role}">${m.role}</span>` : ''}
+      </div>`;
+  };
+
+  const renderGroup = (label, members) => {
+    if (!members.length) return '';
+    return `<div class="members-group-label">${label} — ${members.length}</div>
+      ${sort(members).map(renderMember).join('')}`;
+  };
+
+  inner.innerHTML = `
+    ${renderGroup('En ligne', [...grouped.online, ...grouped.idle, ...grouped.dnd])}
+    ${renderGroup('Hors ligne', grouped.offline)}
+    ${!filtered.length ? '<p style="padding:12px;font-size:13px;color:var(--text-muted);text-align:center">Aucun résultat</p>' : ''}`;
+};

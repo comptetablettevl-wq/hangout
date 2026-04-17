@@ -20,3 +20,14 @@
 
 2025-01 | Les permissions rôles étaient stockées en DB mais jamais vérifiées — purement cosmétiques | Créer un middleware permissions.js avec cache 30s, appelé dans chaque socket handler et route HTTP concernée
 2025-01 | La page d'invitation redirige vers / avec ?invite= mais SPA intercepte tout — utiliser /invite/:code servi par une vraie route Express qui sert invite.html séparément | Les pages qui ne nécessitent pas le JS principal de l'app doivent avoir leur propre HTML
+
+2025-01 | uploadAndSendImage envoyait l'URL uploadée mais ne l'incluait pas dans le contenu du message — les autres membres ne voyaient pas l'image | Inclure l'URL de l'image dans le content du message sous forme de lien direct pour que le renderContentAdvanced la détecte et l'affiche
+
+2025-01 | renderChannelsList définie dans servers.js ET categories.js — conflit au chargement | Quand on extrait une fonction dans un nouveau fichier, la supprimer immédiatement de l'ancien
+2025-01 | confirm-create-channel-btn avait deux listeners (servers.js + categories.js) — double exécution | Utiliser { once: true } ou supprimer l'ancien listener avant d'en ajouter un nouveau
+
+2025-01 | attach-btn dans le HTML n'avait aucun listener — l'upload était impossible | Toujours vérifier que chaque bouton interactif a un handler effectif, pas seulement un id
+2025-01 | drag & drop et paste images non implémentés côté client malgré la route upload existante | L'upload doit avoir 3 entrées : clic bouton, drag & drop, et paste (Ctrl+V)
+
+2025-01 | La reconnexion socket ne re-rejoint pas les rooms guild/channel — les messages envoyés pendant la déco sont manqués | Au reconnect : émettre guilds:join + channel:join + status:set + recharger les messages
+2025-01 | Voice participants non affichés dans l'UI — state local non mis à jour à l'arrivée/départ | Maintenir VoiceState.participants en sync avec les events voice:user_joined/left et re-render à chaque changement

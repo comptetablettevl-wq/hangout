@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hang Out — Page introuvable</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #111214; --accent: #5865F2; --text: #f2f3f5; --muted: #80848e; }
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'DM Sans', sans-serif;
+      color: var(--text);
+      overflow: hidden;
+    }
+    .container {
+      text-align: center;
+      padding: 32px;
+      animation: fadeIn 600ms ease;
+    }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:none; } }
+    .emoji { font-size: 80px; margin-bottom: 24px; display: block; animation: float 3s ease-in-out infinite; }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+    h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(40px, 10vw, 80px);
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    h2 { font-size: 22px; font-weight: 600; margin-bottom: 12px; }
+    p  { font-size: 15px; color: var(--muted); max-width: 360px; margin: 0 auto 32px; line-height: 1.6; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--accent); color: #fff;
+      padding: 12px 24px; border-radius: 8px;
+      font-size: 15px; font-weight: 600;
+      text-decoration: none;
+      transition: background 150ms, transform 100ms;
+    }
+    .btn:hover  { background: #4752c4; }
+    .btn:active { transform: scale(0.98); }
+    .stars {
+      position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: -1;
+    }
+    .star {
+      position: absolute;
+      background: rgba(255,255,255,0.6);
+      border-radius: 50%;
+      animation: twinkle var(--d) ease-in-out infinite;
+    }
+    @keyframes twinkle { 0%,100%{opacity:0.2} 50%{opacity:0.8} }
+  </style>
+</head>
+<body>
+<div class="stars" id="stars"></div>
+<div class="container">
+  <span class="emoji">🚀</span>
+  <h1>404</h1>
+  <h2>Page introuvable</h2>
+  <p>Cette page a disparu dans le vide intersidéral. Retourne sur Hang Out !</p>
+  <a href="/" class="btn">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    Retour à l'accueil
+  </a>
+</div>
+<script>
+  // Générer des étoiles
+  const stars = document.getElementById('stars');
+  for (let i = 0; i < 80; i++) {
+    const star = document.createElement('div');
+    const size = Math.random() * 3 + 1;
+    star.className = 'star';
+    star.style.cssText = `
+      width:${size}px;height:${size}px;
+      left:${Math.random()*100}%;top:${Math.random()*100}%;
+      --d:${2+Math.random()*3}s;
+      animation-delay:${Math.random()*3}s`;
+    stars.appendChild(star);
+  }
+</script>
+</body>
+</html>

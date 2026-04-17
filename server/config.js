@@ -6,6 +6,14 @@ module.exports = {
   clientUrl: process.env.CLIENT_URL || 'http://localhost:3000',
   jwtExpiry: '7d',
   uploadsDir: process.env.UPLOADS_DIR || './uploads',
+  email: {
+    host:    process.env.SMTP_HOST || null,
+    port:    parseInt(process.env.SMTP_PORT) || 587,
+    secure:  process.env.SMTP_SECURE === 'true',
+    user:    process.env.SMTP_USER || null,
+    pass:    process.env.SMTP_PASS || null,
+    from:    process.env.SMTP_FROM || 'Hang Out <noreply@hangout.app>',
+  },
   db: {
     host:     process.env.DB_HOST || 'localhost',
     port:     parseInt(process.env.DB_PORT) || 3306,

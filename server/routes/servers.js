@@ -4,7 +4,7 @@ const setIO = (io) => { _io = io; };
 
 const router = require('express').Router();
 const { Op } = require('sequelize');
-const { Guild, GuildMember, Channel, User, GuildSettings } = require('../models');
+const { Guild, GuildMember, Channel, User, GuildSettings, Category } = require('../models');
 const { invalidatePermCache } = require('../middleware/permissions');
 const auth = require('../middleware/auth');
 const { validate, schemas } = require('../middleware/validate');
@@ -15,6 +15,11 @@ const memberInclude = {
   include: [{ model: User, as: 'user', attributes: ['id','username','avatar','status'] }],
 };
 const settingsInclude = { model: GuildSettings, as: 'settings' };
+const categoryInclude = {
+  model: Category, as: 'categories',
+  include: [{ model: Channel, as: 'channels', order: [['position','ASC']] }],
+  order: [['position','ASC']],
+};
 
 const isAdmin = (guild, userId) => {
   const m = guild.members?.find(m => m.user_id === userId);
@@ -28,7 +33,7 @@ router.get('/', auth, async (req, res) => {
     const guildIds = memberships.map(m => m.guild_id);
     const guilds = await Guild.findAll({
       where: { id: { [Op.in]: guildIds } },
-      include: [memberInclude, settingsInclude, { model: Channel, as: 'channels', order: [['position','ASC']] }],
+      include: [memberInclude, settingsInclude, categoryInclude, { model: Channel, as: 'channels', order: [['position','ASC']] }],
     });
     res.json(guilds);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -44,6 +49,9 @@ router.get('/invite/:code', async (req, res) => {
       include: [{ model: GuildMember, as: 'members', attributes: ['id'] }],
     });
     if (!guild) return res.status(404).json({ error: 'Invitation invalide ou expirée' });
+    // Compter les membres en ligne via onlineUsers si disponible
+    const memberCount  = guild.members?.length || 0;
+
     res.json({
       id:           guild.id,
       name:         guild.name,
@@ -51,7 +59,8 @@ router.get('/invite/:code', async (req, res) => {
       banner:       guild.banner,
       description:  guild.description,
       invite_code:  guild.invite_code,
-      member_count: guild.members?.length || 0,
+      member_count: memberCount,
+      online_count: 0, // sera mis à jour côté client via State
     });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -61,10 +70,14 @@ router.post('/', auth, validate(schemas.createGuild), async (req, res) => {
   try {
     const guild = await Guild.create({ name: req.body.name, owner_id: req.user.id });
     await GuildMember.create({ guild_id: guild.id, user_id: req.user.id, role: 'owner' });
+    // Créer les catégories par défaut
+    const catText  = await Category.create({ guild_id: guild.id, name: 'TEXTE', position: 0 });
+    const catVoice = await Category.create({ guild_id: guild.id, name: 'VOCAL', position: 1 });
+
     const channels = await Channel.bulkCreate([
-      { guild_id: guild.id, name: 'général', type: 'text', position: 0 },
-      { guild_id: guild.id, name: 'off-topic', type: 'text', position: 1 },
-      { guild_id: guild.id, name: 'Général', type: 'voice', position: 2 },
+      { guild_id: guild.id, name: 'général',   type: 'text',  position: 0, category_id: catText.id },
+      { guild_id: guild.id, name: 'off-topic',  type: 'text',  position: 1, category_id: catText.id },
+      { guild_id: guild.id, name: 'Général',   type: 'voice', position: 0, category_id: catVoice.id },
     ]);
     // Créer les settings par défaut — pointer les events vers #général
     await GuildSettings.create({
@@ -75,7 +88,7 @@ router.post('/', auth, validate(schemas.createGuild), async (req, res) => {
       event_member_ban_channel:   channels[0].id,
     });
     const full = await Guild.findByPk(guild.id, {
-      include: [memberInclude, settingsInclude, { model: Channel, as: 'channels' }],
+      include: [memberInclude, settingsInclude, categoryInclude, { model: Channel, as: 'channels' }],
     });
     res.status(201).json(full);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -86,7 +99,7 @@ router.post('/join/:code', auth, async (req, res) => {
   try {
     const guild = await Guild.findOne({
       where: { invite_code: req.params.code },
-      include: [memberInclude, settingsInclude, { model: Channel, as: 'channels' }],
+      include: [memberInclude, settingsInclude, categoryInclude, { model: Channel, as: 'channels' }],
     });
     if (!guild) return res.status(404).json({ error: 'Invitation invalide' });
 
@@ -95,7 +108,7 @@ router.post('/join/:code', auth, async (req, res) => {
       await GuildMember.create({ guild_id: guild.id, user_id: req.user.id, role: 'member' });
     }
     const full = await Guild.findByPk(guild.id, {
-      include: [memberInclude, settingsInclude, { model: Channel, as: 'channels' }],
+      include: [memberInclude, settingsInclude, categoryInclude, { model: Channel, as: 'channels' }],
     });
     // System event : membre a rejoint
     if (_io) {

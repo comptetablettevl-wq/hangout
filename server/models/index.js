@@ -88,13 +88,24 @@ const FriendRequest = sequelize.define('FriendRequest', {
   status:      { type: DataTypes.ENUM('pending','accepted','declined'), defaultValue: 'pending' },
 });
 
+
+// ── Category (catégories de channels) ────────────────────
+const Category = sequelize.define('Category', {
+  id:       { type: DataTypes.UUID, defaultValue: () => uuidv4(), primaryKey: true },
+  guild_id: { type: DataTypes.UUID, allowNull: false },
+  name:     { type: DataTypes.STRING(32), allowNull: false },
+  position: { type: DataTypes.INTEGER, defaultValue: 0 },
+  collapsed:{ type: DataTypes.BOOLEAN, defaultValue: false },
+});
+
 // ── Channel ───────────────────────────────────────────────
 const Channel = sequelize.define('Channel', {
   id:       { type: DataTypes.UUID, defaultValue: () => uuidv4(), primaryKey: true },
   guild_id: { type: DataTypes.UUID, allowNull: false },
   name:     { type: DataTypes.STRING(32), allowNull: false },
   type:     { type: DataTypes.ENUM('text','voice'), defaultValue: 'text' },
-  position: { type: DataTypes.INTEGER, defaultValue: 0 },
+  position:    { type: DataTypes.INTEGER, defaultValue: 0 },
+  category_id: { type: DataTypes.UUID, defaultValue: null },
 });
 
 // ── Message ───────────────────────────────────────────────
@@ -229,6 +240,16 @@ const GuildSettings = sequelize.define('GuildSettings', {
   event_role_created_channel:    { type: DataTypes.UUID, defaultValue: null },
 });
 
+
+// ── PasswordResetToken ────────────────────────────────────
+const PasswordResetToken = sequelize.define('PasswordResetToken', {
+  id:         { type: DataTypes.UUID, defaultValue: () => uuidv4(), primaryKey: true },
+  user_id:    { type: DataTypes.UUID, allowNull: false },
+  token:      { type: DataTypes.STRING(64), allowNull: false, unique: true },
+  expires_at: { type: DataTypes.DATE, allowNull: false },
+  used:       { type: DataTypes.BOOLEAN, defaultValue: false },
+});
+
 // ── Associations ──────────────────────────────────────────
 Guild.hasMany(GuildMember, { foreignKey: 'guild_id', as: 'members' });
 GuildMember.belongsTo(Guild, { foreignKey: 'guild_id' });
@@ -247,6 +268,12 @@ Ban.belongsTo(User, { foreignKey: 'banned_by', as: 'bannedBy' });
 
 FriendRequest.belongsTo(User, { foreignKey: 'sender_id',   as: 'sender' });
 FriendRequest.belongsTo(User, { foreignKey: 'receiver_id', as: 'receiver' });
+
+Category.belongsTo(Guild, { foreignKey: 'guild_id' });
+PasswordResetToken.belongsTo(User, { foreignKey: 'user_id' });
+Guild.hasMany(Category, { foreignKey: 'guild_id', as: 'categories', onDelete: 'CASCADE' });
+Category.hasMany(Channel, { foreignKey: 'category_id', as: 'channels' });
+Channel.belongsTo(Category, { foreignKey: 'category_id', as: 'category' });
 
 Guild.hasMany(Channel, { foreignKey: 'guild_id', as: 'channels', onDelete: 'CASCADE' });
 Channel.belongsTo(Guild, { foreignKey: 'guild_id' });
@@ -286,5 +313,5 @@ SystemEvent.belongsTo(User, { foreignKey: 'target_id', as: 'target' });
 module.exports = {
   sequelize, User, Guild, GuildMember, Role, MemberRole,
   Ban, FriendRequest, Channel, Message, Reaction, DirectMessage, Attachment, PinnedMessage,
-  Thread, ThreadMessage, MessageHistory, SystemEvent, GuildSettings
+  Thread, ThreadMessage, MessageHistory, SystemEvent, GuildSettings, Category, PasswordResetToken
 };

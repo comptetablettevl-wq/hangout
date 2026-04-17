@@ -9,8 +9,8 @@ window.updatePageTitle = () => {
 };
 
 window.addPageNotif = (type = 'channel') => {
-  if (document.hasFocus()) return;
-  if (type === 'dm') NotifState.dmCount++;
+  if (document.hasFocus() && type !== 'mention') return;
+  if (type === 'dm' || type === 'mention') NotifState.dmCount++;
   else NotifState.channelCount++;
   updatePageTitle();
 };
@@ -75,6 +75,12 @@ window.setupImagePreview = () => {
   const fileInput = document.getElementById('file-input');
   if (!fileInput) return;
 
+  // Brancher le bouton d'attachement sur l'input file
+  const attachBtn = document.getElementById('attach-btn');
+  if (attachBtn) {
+    attachBtn.addEventListener('click', () => fileInput.click());
+  }
+
   fileInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -127,6 +133,16 @@ window.cancelImagePreview = () => {
 // Upload réel via FormData
 window.uploadAndSendImage = async () => {
   if (!window._pendingImageFile) return false;
+
+  // Indicateur de chargement dans la preview
+  const bar = document.getElementById('image-preview-bar');
+  if (bar) {
+    bar.style.opacity = '0.6';
+    bar.style.pointerEvents = 'none';
+    const hint = bar.querySelector('div > div:last-child');
+    if (hint) hint.textContent = 'Upload en cours…';
+  }
+
   try {
     const form = new FormData();
     form.append('file', window._pendingImageFile);
@@ -138,17 +154,25 @@ window.uploadAndSendImage = async () => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
 
-    // Envoyer comme message avec URL
-    const content = document.getElementById('message-input').value.trim();
+    const textContent = document.getElementById('message-input').value.trim();
+    // URL absolue pour que renderContentAdvanced la détecte comme image
+    const imageUrl = `${location.origin}${data.url}`;
+    const finalContent = textContent ? `${imageUrl}\n${textContent}` : imageUrl;
+
     window.socketClient?.emit('message:send', {
-      guildId: State.currentServer?.id,
+      guildId:   State.currentServer?.id,
       channelId: State.currentChannel?.id,
-      content: content || `📎 ${window._pendingImageFile.name}`,
+      content:   finalContent,
     });
+
     cancelImagePreview();
+    document.getElementById('message-input').value = '';
+    document.getElementById('message-input').style.height = 'auto';
     return true;
   } catch (err) {
-    showToast(err.message, 'error');
+    // Restaurer la preview en cas d'erreur
+    if (bar) { bar.style.opacity = '1'; bar.style.pointerEvents = 'auto'; }
+    showToast('Erreur upload : ' + err.message, 'error');
     return false;
   }
 };
@@ -181,3 +205,82 @@ window.startHeartbeat = () => {
 };
 
 document.addEventListener('DOMContentLoaded', startHeartbeat);
+
+// ── Drag & drop et paste d'images ────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const chatInputZone = document.getElementById('chat-input-zone');
+  if (!chatInputZone) return;
+
+  // Overlay drag global sur le main
+  const mainEl = document.getElementById('main');
+  if (mainEl) {
+    mainEl.addEventListener('dragenter', (e) => {
+      if (!e.dataTransfer.types.includes('Files')) return;
+      if (!State.currentChannel) return;
+      if (!document.getElementById('drag-overlay')) {
+        const ov = document.createElement('div');
+        ov.id = 'drag-overlay';
+        ov.className = 'drag-overlay';
+        ov.innerHTML = '<div class="drag-overlay-text">📎 Déposer pour envoyer</div>';
+        mainEl.appendChild(ov);
+      }
+    });
+    mainEl.addEventListener('dragleave', (e) => {
+      if (!mainEl.contains(e.relatedTarget)) {
+        document.getElementById('drag-overlay')?.remove();
+      }
+    });
+    mainEl.addEventListener('dragover', (e) => { e.preventDefault(); });
+    mainEl.addEventListener('drop', (e) => {
+      e.preventDefault();
+      document.getElementById('drag-overlay')?.remove();
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/') && State.currentChannel) {
+        handleDroppedFile(file);
+      }
+    });
+  }
+
+  // Drag & drop sur la zone input aussi
+  chatInputZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    chatInputZone.style.background = 'var(--accent-dim)';
+  });
+  chatInputZone.addEventListener('dragleave', () => {
+    chatInputZone.style.background = '';
+  });
+  chatInputZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    chatInputZone.style.background = '';
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      handleDroppedFile(file);
+    } else if (file) {
+      showToast('Seules les images sont supportées', 'error');
+    }
+  });
+
+  // Coller une image (Ctrl+V)
+  document.addEventListener('paste', (e) => {
+    if (!State.currentChannel) return;
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          handleDroppedFile(file);
+          break;
+        }
+      }
+    }
+  });
+});
+
+window.handleDroppedFile = (file) => {
+  if (file.size > 8 * 1024 * 1024) { showToast('Fichier trop grand (max 8 Mo)', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = (ev) => showImagePreview(ev.target.result, file.name || 'image.png', file);
+  reader.readAsDataURL(file);
+};

@@ -35,7 +35,22 @@ window.initSocket = () => {
 
   s.on('reconnect', () => {
     hideReconnectBanner();
-    showToast('Reconnecté', 'success');
+    showToast('Reconnecté ✓', 'success');
+    // Re-rejoindre les guilds rooms
+    s.emit('guilds:join');
+    // Re-rejoindre le channel actuel
+    if (State.currentChannel && State.currentServer) {
+      s.emit('channel:join', {
+        guildId:   State.currentServer.id,
+        channelId: State.currentChannel.id,
+      });
+    }
+    // Re-broadcaster le statut online
+    s.emit('status:set', { status: State.user?.status || 'online' });
+    // Recharger les messages du channel actuel pour rattraper ce qu'on a manqué
+    if (State.currentChannel && State.currentServer) {
+      loadMessages(State.currentServer.id, State.currentChannel.id);
+    }
   });
 
 
@@ -45,6 +60,17 @@ window.initSocket = () => {
     const list = document.getElementById('messages-list');
     if (list) list.insertAdjacentHTML('beforeend', renderSystemEvent(event));
     scrollToBottom();
+  });
+
+
+  // Partage d'écran reçu
+  s.on('voice:screen_share', ({ userId, username, sharing }) => {
+    if (sharing) {
+      showToast(`${username} partage son écran`, 'info', 5000);
+    } else {
+      document.getElementById('screen-share-view')?.remove();
+      showToast(`${username} a arrêté le partage`, 'info');
+    }
   });
 
   // ── Messages ─────────────────────────────────────────
