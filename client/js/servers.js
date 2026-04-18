@@ -77,4 +77,187 @@ window.selectServer = (server) => {
 
 
 
-window.toggleCategory
+// ── Channel actions ───────────────────────────────────────
+window.selectChannel = async (channelId) => {
+  const server = State.currentServer;
+  if (!server) return;
+  const channel = server.channels?.find(c => c.id === channelId)
+    || server.categories?.flatMap(c => c.channels || []).find(c => c.id === channelId);
+  if (!channel) return;
+
+  if (channel.type === 'voice') { joinVoiceChannel(channel); return; }
+
+  State.currentChannel = channel;
+  document.querySelectorAll('.channel-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.channelId === channelId);
+  });
+
+  document.getElementById('current-channel-name').textContent = '#' + channel.name;
+  document.getElementById('chat-view').style.display  = 'flex';
+  document.getElementById('dm-view').style.display    = 'none';
+  document.getElementById('welcome-screen').style.display = 'none';
+
+  await loadMessages(server.id, channelId);
+
+  window.socketClient?.emit('channel:join', { guildId: server.id, channelId });
+};
+
+window.loadMessages = async (guildId, channelId, before = null) => {
+  const list = document.getElementById('messages-list');
+  if (!before) {
+    list.innerHTML = `<div class="channel-welcome">
+      <div class="ch-icon-big">#</div>
+      <h3>${escapeHtml(State.currentChannel?.name || '')}</h3>
+      <p>Début du channel <strong>#${escapeHtml(State.currentChannel?.name || '')}</strong></p>
+    </div>`;
+    State.messages = [];
+  }
+  try {
+    const url = `/messages/${guildId}/${channelId}${before ? '?before=' + encodeURIComponent(before) : ''}`;
+    const msgs = await api.get(url);
+    if (!before) {
+      State.messages = msgs;
+      renderAllMessages(msgs);
+      scrollToBottom();
+    } else {
+      const container = document.getElementById('messages-container');
+      const prevH = container?.scrollHeight || 0;
+      State.messages = [...msgs, ...State.messages];
+      renderAllMessages(State.messages);
+      if (container) container.scrollTop += container.scrollHeight - prevH;
+    }
+    if (msgs.length === 50) {
+      const btn = document.createElement('div');
+      btn.className = 'load-more-btn';
+      btn.textContent = 'Charger plus';
+      btn.onclick = () => { btn.remove(); loadMessages(guildId, channelId, State.messages[0]?.created_at); };
+      const welcome = list.querySelector('.channel-welcome');
+      welcome ? welcome.after(btn) : list.prepend(btn);
+    }
+    initScrollToBottomBtn();
+  } catch (err) { showToast(err.message, 'error'); }
+};
+
+window.deleteChannel = async (channelId) => {
+  if (!confirm('Supprimer ce channel ?')) return;
+  try {
+    await api.delete(`/servers/${State.currentServer.id}/channels/${channelId}`);
+    State.currentServer.channels = State.currentServer.channels?.filter(c => c.id !== channelId) || [];
+    if (State.currentServer.categories) {
+      State.currentServer.categories.forEach(cat => {
+        cat.channels = cat.channels?.filter(c => c.id !== channelId) || [];
+      });
+    }
+    if (State.currentChannel?.id === channelId) {
+      State.currentChannel = null;
+      document.getElementById('chat-view').style.display = 'none';
+    }
+    renderChannelsList(State.currentServer);
+    showToast('Channel supprimé', 'success');
+  } catch (err) { showToast(err.message, 'error'); }
+};
+
+window.leaveServer = async () => {
+  if (!State.currentServer) return;
+  if (!confirm(`Quitter "${State.currentServer.name}" ?`)) return;
+  try {
+    await api.delete(`/servers/${State.currentServer.id}/leave`);
+    State.servers = State.servers.filter(s => s.id !== State.currentServer.id);
+    State.currentServer = null;
+    State.currentChannel = null;
+    renderServersList();
+    document.getElementById('sidebar-channels').style.display = 'none';
+    document.getElementById('chat-view').style.display = 'none';
+    document.getElementById('welcome-screen').style.display = 'flex';
+    showToast('Serveur quitté', 'success');
+  } catch (err) { showToast(err.message, 'error'); }
+};
+
+window.openCreateChannelModal = (type = 'text') => {
+  State.newChannelType = type;
+  window._targetCategoryId = null;
+  document.getElementById('new-channel-name').value = '';
+  const errEl = document.getElementById('create-channel-error');
+  if (errEl) errEl.textContent = '';
+  document.getElementById('type-text-btn').className  = 'btn btn-sm ' + (type === 'text'  ? 'btn-primary' : 'btn-secondary');
+  document.getElementById('type-voice-btn').className = 'btn btn-sm ' + (type === 'voice' ? 'btn-primary' : 'btn-secondary');
+  openModal('modal-create-channel');
+};
+
+window.showChannelContextMenu = (event, channelId, channelName, canManage) => {
+  const items = [
+    { label: 'Copier l\'ID', action: () => { navigator.clipboard.writeText(channelId); showToast('ID copié', 'success'); } },
+  ];
+  if (canManage) {
+    items.push({ divider: true });
+    items.push({ label: 'Supprimer', danger: true, action: () => deleteChannel(channelId) });
+  }
+  showContextMenu(event, items);
+};
+
+window.openInviteModal = () => {
+  if (!State.currentServer) return;
+  const code = State.currentServer.invite_code;
+  const link = `${location.origin}/invite/${code}`;
+  const el = document.getElementById('invite-link-display');
+  if (el) el.value = link;
+  openModal('modal-invite');
+};
+
+window.scrollToBottom = () => {
+  const container = document.getElementById('messages-container');
+  if (container) container.scrollTop = container.scrollHeight;
+};
+
+window.scrollToMessage = (msgId) => {
+  const el = document.querySelector(`[data-msg-id="${msgId}"]`);
+  if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.style.background = 'rgba(88,101,242,0.15)'; setTimeout(() => el.style.background = '', 1500); }
+};
+
+// ── Listeners boutons créer / rejoindre serveur ───────────
+document.addEventListener('DOMContentLoaded', () => {
+  // Bouton + dans la sidebar servers
+  document.getElementById('add-server-btn')?.addEventListener('click', () => {
+    openModal('modal-add-server');
+    switchAddTab('create');
+  });
+
+  // Bouton "Créer un serveur" sur l'écran de bienvenue
+  document.getElementById('welcome-add-btn')?.addEventListener('click', () => {
+    openModal('modal-add-server');
+    switchAddTab('create');
+  });
+
+  // Confirmer la création / rejoindre
+  document.getElementById('confirm-add-server-btn')?.addEventListener('click', async () => {
+    const nameInput  = document.getElementById('new-server-name');
+    const codeInput  = document.getElementById('join-server-code');
+    const errEl      = document.getElementById('add-server-error');
+    if (errEl) errEl.textContent = '';
+
+    const isCreate = document.getElementById('tab-create-content')?.style.display !== 'none';
+
+    try {
+      if (isCreate) {
+        const name = nameInput?.value.trim();
+        if (!name) { if (errEl) errEl.textContent = 'Nom requis'; return; }
+        const server = await api.post('/servers', { name });
+        State.servers.push(server);
+        renderServersList();
+        selectServer(server);
+      } else {
+        const code = codeInput?.value.trim();
+        if (!code) { if (errEl) errEl.textContent = 'Code requis'; return; }
+        const server = await api.post(`/servers/join/${code}`, {});
+        State.servers.push(server);
+        renderServersList();
+        selectServer(server);
+      }
+      closeModal('modal-add-server');
+      if (nameInput)  nameInput.value  = '';
+      if (codeInput)  codeInput.value  = '';
+    } catch (err) {
+      if (errEl) errEl.textContent = err.message;
+    }
+  });
+});

@@ -69,7 +69,7 @@ window.renderGuildSettingsModal = async (activeTab = 'general') => {
   const myMember = guild?.members?.find(m => m.user?.id === State.user?.id);
   const isOwner  = guild?.owner_id === State.user?.id;
 
-  modal.querySelector('.modal-header h3').textContent = `⚙️ ${escapeHtml(guild?.name || 'Serveur')}`;
+  modal.querySelector('.modal-header h3').textContent = `${escapeHtml(guild?.name || 'Serveur')}`;
   modal.querySelector('.modal-header p').textContent  = 'Paramètres du serveur';
 
   modal.querySelector('.modal-body').innerHTML = `
@@ -77,10 +77,10 @@ window.renderGuildSettingsModal = async (activeTab = 'general') => {
     <div style="display:flex;gap:0;min-height:480px">
       <div style="width:160px;min-width:160px;background:var(--bg-secondary);border-radius:var(--radius) 0 0 var(--radius);padding:12px 6px;display:flex;flex-direction:column;gap:2px">
         ${[
-          { tab: 'general',     icon: '🏠', label: 'Général'     },
-          { tab: 'roles',       icon: '🎭', label: 'Rôles'        },
-          { tab: 'events',      icon: '📣', label: 'Événements'   },
-          { tab: 'members',     icon: '👥', label: 'Membres'      },
+          { tab: 'general',  icon: '', label: 'Général'     },
+          { tab: 'roles',    icon: '', label: 'Rôles'        },
+          { tab: 'events',   icon: '', label: 'Événements'  },
+          { tab: 'members',  icon: '', label: 'Membres'     },
         ].map(t => `
           <button class="guild-tab-btn" data-tab="${t.tab}" onclick="switchGuildTab('${t.tab}')"
             style="text-align:left;padding:8px 10px;border-radius:6px;font-size:13px;
@@ -162,7 +162,7 @@ window.renderGuildSettingsModal = async (activeTab = 'general') => {
             <div style="width:160px;flex-shrink:0;display:flex;flex-direction:column;gap:4px">
               <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;padding:0 4px 6px;letter-spacing:.05em">Rôles</div>
               <div id="roles-sidebar-list" style="flex:1;overflow-y:auto"></div>
-              <button class="btn btn-primary btn-sm btn-full" onclick="openCreateRoleInline()" style="margin-top:8px">+ Créer un rôle</button>
+              <button class="btn btn-primary btn-sm btn-full" onclick="openCreateRoleInline()" style="margin-top:8px">+ Nouveau rôle</button>
             </div>
 
             <!-- Éditeur de permissions -->

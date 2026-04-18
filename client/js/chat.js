@@ -99,12 +99,12 @@ window.renderMessage = (msg, compact = false) => {
   const actionsHtml = `
     <div class="msg-actions">
       <button class="msg-action-btn" title="Réagir" onclick="toggleEmojiForMsg('${msg.id}')">😊</button>
-      <button class="msg-action-btn" title="Répondre" onclick="startReply('${msg.id}','${escapeHtml(author.username||'')}')">↩</button>
-      <button class="msg-action-btn" title="Ouvrir un thread" onclick="openThread('${msg.id}','${escapeHtml((msg.content||'').slice(0,60))}','${escapeHtml(author.username||'')}')">🧵</button>
-      ${canPin ? `<button class="msg-action-btn" title="Épingler" onclick="pinMessage('${msg.id}')">📌</button>` : ''}
-      ${isOwn ? `<button class="msg-action-btn" title="Modifier" onclick="startEdit('${msg.id}')">✏️</button>` : ''}
+      <button class="msg-action-btn" title="Répondre" onclick="startReply('${msg.id}','${escapeHtml(author.username||'')}')">&#8617;</button>
+      <button class="msg-action-btn" title="Ouvrir un thread" onclick="openThread('${msg.id}','${escapeHtml((msg.content||'').slice(0,60))}','${escapeHtml(author.username||'')}')">Thread</button>
+      ${canPin ? `<button class="msg-action-btn" title="Épingler" onclick="pinMessage('${msg.id}')">Épingler</button>` : ''}
+      ${isOwn ? `<button class="msg-action-btn" title="Modifier" onclick="startEdit('${msg.id}')">Modifier</button>` : ''}
       ${isOwn && msg.edited ? `<button class="msg-action-btn" title="Historique" onclick="showEditHistory('${msg.id}')" style="font-size:11px;color:var(--text-muted)">hist.</button>` : ''}
-      ${isOwn ? `<button class="msg-action-btn danger" title="Supprimer" onclick="deleteMessage('${msg.id}')">🗑️</button>` : ''}
+      ${isOwn ? `<button class="msg-action-btn danger" title="Supprimer" onclick="deleteMessage('${msg.id}')">Supprimer</button>` : ''}
     </div>`;
 
   // OG preview pour les URLs
@@ -466,7 +466,7 @@ document.getElementById('cancel-reply-btn').addEventListener('click', () => {
 const messageInput = document.getElementById('message-input');
 const sendBtn = document.getElementById('send-btn');
 
-const sendMessage = async () => {
+window.sendMessage = async () => {
   // Si une image est en attente, l'uploader d'abord
   if (window._pendingImageFile) {
     await uploadAndSendImage();

@@ -886,3 +886,18 @@
   background: var(--bg-hover);
   color: var(--text-primary);
 }
+
+/* ── Boutons d'action messages — style texte ─────────────── */
+.msg-action-btn {
+  font-size: 11px !important;
+  padding: 2px 6px !important;
+  height: auto !important;
+  min-width: unset !important;
+}
+
+/* ── Context menu — pas d'émojis ─────────────────────────── */
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}

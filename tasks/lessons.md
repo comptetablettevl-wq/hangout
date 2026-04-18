@@ -35,3 +35,6 @@
 2025-04 | FriendNickname est visible uniquement par l'owner — toujours passer owner_id dans la requête GET /users/:id pour retourner le surnom personnalisé | Les données personnelles (surnoms, notes) doivent être filtrées par req.user.id côté serveur, jamais côté client
 
 2025-04 | Sequelize lève une erreur si deux associations utilisent le même alias (as:'streak') — même si c'est sur deux modèles différents | Toujours utiliser des alias uniques et vérifier avec node -e "require('./server/models/index')" avant de livrer
+
+2025-04 | Des blocs entiers de fonctions dans servers.js ont été perdus lors d'éditions successives (selectChannel, loadMessages, leaveServer, etc.) | Après chaque édition de fichier, vérifier que le nombre de fonctions window.X n'a pas diminué avec grep -c "^window\." 
+2025-04 | CSP helmet bloque les onclick="..." inline — script-src-attr 'none' par défaut | Toujours ajouter scriptSrcAttr: ["'unsafe-inline'"] dans la config helmet pour les apps HTML vanilla

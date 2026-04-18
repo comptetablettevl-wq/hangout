@@ -307,6 +307,7 @@
       <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;padding:16px 8px 4px">App</div>
       <button class="settings-tab-btn" data-tab="audio" onclick="switchSettingsTab('audio')" style="text-align:left;padding:8px 12px;border-radius:6px;font-size:14px;color:var(--text-secondary);width:100%">Audio & Voix</button>
       <button class="settings-tab-btn" data-tab="appearance" onclick="switchSettingsTab('appearance')" style="text-align:left;padding:8px 12px;border-radius:6px;font-size:14px;color:var(--text-secondary);width:100%">Apparence</button>
+      <button class="settings-tab-btn" data-tab="rewards" onclick="switchSettingsTab('rewards');loadStreakSettings()" style="text-align:left;padding:8px 12px;border-radius:6px;font-size:14px;color:var(--text-secondary);width:100%">Récompenses</button>
       <div style="flex:1"></div>
       <button class="btn btn-danger btn-sm btn-full" id="logout-btn">Déconnexion</button>
     </div>
@@ -391,6 +392,10 @@
       </div>
 
       <!-- Apparence -->
+      <div class="settings-tab-content" data-tab="rewards" style="display:none">
+        <div id="streak-settings-content" style="padding:8px;color:var(--text-muted)">Chargement...</div>
+      </div>
+
       <div class="settings-tab-content" data-tab="appearance" style="display:none">
         <h3 style="font-family:var(--font-display);font-size:18px;font-weight:600;margin-bottom:20px">Apparence</h3>
         <div class="modal-body">
@@ -492,7 +497,7 @@
   <div class="modal" style="max-width:720px;padding:0;overflow:hidden">
     <div class="modal-header" style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
       <div>
-        <h3 style="margin:0;font-size:16px">⚙️ Paramètres du serveur</h3>
+        <h3 style="margin:0;font-size:16px">Paramètres du serveur</h3>
         <p style="margin:0;font-size:13px;color:var(--text-muted)">Général</p>
       </div>
       <button onclick="closeModal('modal-guild-settings')" style="color:var(--text-muted);font-size:20px;background:none;border:none;cursor:pointer;line-height:1">×</button>

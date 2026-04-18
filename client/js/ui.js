@@ -110,18 +110,18 @@ document.getElementById('server-name-header').addEventListener('click', (e) => {
   const canBanList = ['owner','admin'].includes(myMember?.role);
 
   const items = [
-    { label: '📨 Inviter des gens', action: () => document.getElementById('invite-btn').click() },
+    { label: 'Inviter des gens', action: () => document.getElementById('invite-btn').click() },
   ];
   if (canAdmin) {
     items.push({ divider: true });
-    items.push({ label: '⚙️ Paramètres du serveur', action: () => openGuildSettings('general') });
-    items.push({ label: '🎭 Rôles & Permissions', action: () => openGuildSettings('roles') });
-    items.push({ label: '🔨 Liste des bans', action: () => openBansList() });
-    items.push({ label: '👥 Membres', action: () => openGuildSettings('members') });
+    items.push({ label: 'Paramètres du serveur', action: () => openGuildSettings('general') });
+    items.push({ label: 'Rôles & Permissions', action: () => openGuildSettings('roles') });
+    items.push({ label: 'Liste des bans', action: () => openBansList() });
+    items.push({ label: 'Membres', action: () => openGuildSettings('members') });
 
   }
   items.push({ divider: true });
-  items.push({ label: '🚪 Quitter le serveur', danger: true, action: leaveServer });
+  items.push({ label: 'Quitter le serveur', danger: true, action: leaveServer });
   showContextMenu(e, items);
 });
 
