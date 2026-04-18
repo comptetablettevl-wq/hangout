@@ -38,3 +38,5 @@
 
 2025-04 | Des blocs entiers de fonctions dans servers.js ont été perdus lors d'éditions successives (selectChannel, loadMessages, leaveServer, etc.) | Après chaque édition de fichier, vérifier que le nombre de fonctions window.X n'a pas diminué avec grep -c "^window\." 
 2025-04 | CSP helmet bloque les onclick="..." inline — script-src-attr 'none' par défaut | Toujours ajouter scriptSrcAttr: ["'unsafe-inline'"] dans la config helmet pour les apps HTML vanilla
+
+2025-04 | Apostrophe non échappée dans une string JS ('Effets d'avatar') = SyntaxError qui bloque l'exécution du fichier ET de tout ce qui suit dans Chrome | Toujours utiliser node --check sur chaque fichier JS après édition, et préférer les templates \`...\` ou les doubles quotes pour les strings contenant des apostrophes

@@ -383,7 +383,7 @@ window.loadStreakSettings = async () => {
   if (!grid) return;
 
   const catalog = data.cosmetics || [];
-  const groups  = { badge: 'Badges', username: 'Styles de pseudo', avatar: 'Effets d'avatar', profile_effect: 'Effets de profil' };
+  const groups  = { badge: 'Badges', username: 'Styles de pseudo', avatar: "Effets d'avatar", profile_effect: 'Effets de profil' };
 
   let html = '';
   for (const [type, label] of Object.entries(groups)) {
