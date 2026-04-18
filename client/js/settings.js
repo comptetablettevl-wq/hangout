@@ -15,7 +15,16 @@ document.getElementById('save-profile-btn')?.addEventListener('click', async () 
   const username     = document.getElementById('settings-username-input')?.value.trim();
   const customStatus = document.getElementById('settings-custom-status')?.value;
   try {
-    const { user } = await api.patch('/users/me', { username, custom_status: customStatus });
+    const biography     = document.getElementById('settings-biography')?.value || '';
+    const activityType  = document.getElementById('settings-activity-type')?.value || 'none';
+    const activityText  = document.getElementById('settings-activity-text')?.value.trim() || '';
+    const { user } = await api.patch('/users/me', {
+      username,
+      custom_status: customStatus,
+      biography:     biography || null,
+      activity_type: activityType,
+      activity_text: activityText || null,
+    });
     State.user = { ...State.user, ...user };
     updateUserPanel();
     showToast('Profil mis à jour', 'success');
@@ -88,4 +97,13 @@ window.renderSettingsAvatar = () => {
   if (usernameInput) usernameInput.value = State.user?.username || '';
   const statusInput = document.getElementById('settings-custom-status');
   if (statusInput) statusInput.value = State.user?.custom_status || '';
+
+  const bioInput = document.getElementById('settings-biography');
+  if (bioInput) bioInput.value = State.user?.biography || '';
+
+  const actTypeInput = document.getElementById('settings-activity-type');
+  if (actTypeInput) actTypeInput.value = State.user?.activity_type || 'none';
+
+  const actTextInput = document.getElementById('settings-activity-text');
+  if (actTextInput) actTextInput.value = State.user?.activity_text || '';
 };

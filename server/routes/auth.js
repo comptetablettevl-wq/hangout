@@ -1,4 +1,5 @@
 const router = require('express').Router();
+const { updateLoginStreak } = require('../services/streakService');
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 const auth = require('../middleware/auth');

@@ -11,7 +11,10 @@ const User = sequelize.define('User', {
   password:      { type: DataTypes.STRING(255), allowNull: false },
   avatar:        { type: DataTypes.STRING(500), defaultValue: null },
   status:        { type: DataTypes.ENUM('online','idle','dnd','offline'), defaultValue: 'offline' },
-  custom_status: { type: DataTypes.STRING(128), defaultValue: '' },
+  custom_status:  { type: DataTypes.STRING(128), defaultValue: '' },
+  biography:      { type: DataTypes.STRING(512), defaultValue: null },
+  activity_type:  { type: DataTypes.ENUM('playing','watching','listening','competing', 'none'), defaultValue: 'none' },
+  activity_text:  { type: DataTypes.STRING(128), defaultValue: null },
 }, {
   hooks: {
     beforeSave: async (user) => {
@@ -21,7 +24,12 @@ const User = sequelize.define('User', {
 });
 User.prototype.comparePassword = function(p) { return bcrypt.compare(p, this.password); };
 User.prototype.toPublic = function() {
-  return { id: this.id, username: this.username, avatar: this.avatar, status: this.status, custom_status: this.custom_status };
+  return {
+    id: this.id, username: this.username, avatar: this.avatar,
+    status: this.status, custom_status: this.custom_status,
+    biography: this.biography,
+    activity_type: this.activity_type, activity_text: this.activity_text,
+  };
 };
 
 // ── Guild ─────────────────────────────────────────────────
@@ -88,6 +96,44 @@ const FriendRequest = sequelize.define('FriendRequest', {
   status:      { type: DataTypes.ENUM('pending','accepted','declined'), defaultValue: 'pending' },
 });
 
+
+
+
+// ── UserStreak ────────────────────────────────────────────
+const UserStreak = sequelize.define('UserStreak', {
+  id:             { type: DataTypes.UUID, defaultValue: () => uuidv4(), primaryKey: true },
+  user_id:        { type: DataTypes.UUID, allowNull: false, unique: true },
+  current_streak: { type: DataTypes.INTEGER, defaultValue: 1 },
+  longest_streak: { type: DataTypes.INTEGER, defaultValue: 1 },
+  total_days:     { type: DataTypes.INTEGER, defaultValue: 1 },
+  last_login:     { type: DataTypes.DATEONLY, defaultValue: DataTypes.NOW },
+  // Cosmétique pseudo équipé (null = aucun)
+  equipped_username_cosmetic: { type: DataTypes.STRING(64), defaultValue: null },
+  // Cosmétique avatar équipé (null = aucun)
+  equipped_avatar_cosmetic:   { type: DataTypes.STRING(64), defaultValue: null },
+});
+
+// ── UnlockedCosmetic ──────────────────────────────────────
+// Liste des cosmétiques débloqués par un user
+const UnlockedCosmetic = sequelize.define('UnlockedCosmetic', {
+  id:           { type: DataTypes.UUID, defaultValue: () => uuidv4(), primaryKey: true },
+  user_id:      { type: DataTypes.UUID, allowNull: false },
+  cosmetic_id:  { type: DataTypes.STRING(64), allowNull: false }, // clé du cosmétique (ex: 'gradient_red')
+  unlocked_at:  { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+}, {
+  indexes: [{ unique: true, fields: ['user_id', 'cosmetic_id'] }],
+});
+
+// ── FriendNickname ────────────────────────────────────────
+// Surnom perso pour un ami — visible uniquement par l'auteur
+const FriendNickname = sequelize.define('FriendNickname', {
+  id:          { type: DataTypes.UUID, defaultValue: () => uuidv4(), primaryKey: true },
+  owner_id:    { type: DataTypes.UUID, allowNull: false }, // qui a défini le surnom
+  target_id:   { type: DataTypes.UUID, allowNull: false }, // à qui s'applique le surnom
+  nickname:    { type: DataTypes.STRING(64), allowNull: false },
+}, {
+  indexes: [{ unique: true, fields: ['owner_id', 'target_id'] }],
+});
 
 // ── Category (catégories de channels) ────────────────────
 const Category = sequelize.define('Category', {
@@ -295,6 +341,17 @@ DirectMessage.hasMany(Attachment, { foreignKey: 'dm_id', as: 'attachments', onDe
 PinnedMessage.belongsTo(Message, { foreignKey: 'message_id', as: 'message' });
 PinnedMessage.belongsTo(User, { foreignKey: 'pinned_by', as: 'pinnedBy' });
 
+UserStreak.belongsTo(User, { foreignKey: 'user_id' });
+User.hasOne(UserStreak, { foreignKey: 'user_id', as: 'userStreak' });
+UnlockedCosmetic.belongsTo(User, { foreignKey: 'user_id' });
+User.hasMany(UnlockedCosmetic, { foreignKey: 'user_id', as: 'unlockedCosmetics' });
+
+FriendNickname.belongsTo(User, { foreignKey: 'owner_id',  as: 'owner'  });
+UserStreak.belongsTo(User, { foreignKey: 'user_id' });
+UnlockedCosmetic.belongsTo(User, { foreignKey: 'user_id' });
+
+FriendNickname.belongsTo(User, { foreignKey: 'target_id', as: 'target' });
+
 Guild.hasOne(GuildSettings, { foreignKey: 'guild_id', as: 'settings', onDelete: 'CASCADE' });
 GuildSettings.belongsTo(Guild, { foreignKey: 'guild_id' });
 
@@ -313,5 +370,6 @@ SystemEvent.belongsTo(User, { foreignKey: 'target_id', as: 'target' });
 module.exports = {
   sequelize, User, Guild, GuildMember, Role, MemberRole,
   Ban, FriendRequest, Channel, Message, Reaction, DirectMessage, Attachment, PinnedMessage,
-  Thread, ThreadMessage, MessageHistory, SystemEvent, GuildSettings, Category, PasswordResetToken
+  Thread, ThreadMessage, MessageHistory, SystemEvent, GuildSettings, FriendNickname,
+  UserStreak, UnlockedCosmetic, Category, PasswordResetToken
 };

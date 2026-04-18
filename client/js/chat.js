@@ -87,7 +87,7 @@ window.renderMessage = (msg, compact = false) => {
   const tsIso = msg.created_at || msg.createdAt;
   const headerHtml = compact ? '' : `
     <div class="msg-header">
-      <span class="msg-author" onclick="showProfilePopup(event,'${msg.author_id}','${escapeHtml(author.username||'')}')">${escapeHtml(author.username || '?')}</span>
+      <span class="msg-author" onclick="showProfilePopup(event,'${msg.author_id}','${escapeHtml(author.username||'')}')">${renderAuthorName(author)}</span>
       <span class="msg-timestamp" data-timestamp="${tsIso}" title="${formatTime(tsIso)}">${formatRelativeTime(tsIso)}</span>
     </div>`;
 
@@ -120,7 +120,7 @@ window.renderMessage = (msg, compact = false) => {
     </div>`;
 
   return `
-    <div class="msg-group ${compact?'compact':''}" data-msg-id="${msg.id}">
+    <div class="msg-group ${compact?'compact':''}" data-msg-id="${msg.id}" data-author-id="${msg.author_id || author.id || ''}">
       ${avatarHtml}
       <div class="msg-content-col">
         ${replyHtml}${headerHtml}

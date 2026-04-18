@@ -130,3 +130,41 @@ hangout/
 - [ ] Export messages channel (JSON + CSV)
 - [ ] UI: lightbox image, timestamps relatifs, hover reactions
 - [ ] Route search users globale pour les mentions
+
+## V14 — Système de Streaks & Cosmétiques
+
+### Modèles DB
+- [ ] Streak : last_login, current_streak, longest_streak, total_days
+- [ ] Cosmetic : type, name, requirement_days, css_value
+- [ ] UserCosmetic : user_id, cosmetic_id, equipped (bool)
+
+### Logique streak
+- [ ] Middleware login : calculer streak au login
+- [ ] Si dernier login = hier → streak++
+- [ ] Si dernier login = aujourd'hui → rien
+- [ ] Si dernier login > hier → streak reset à 1
+- [ ] Débloquer cosmétiques automatiquement au passage d'un palier
+
+### Cosmétiques prévus
+- 3j  → Badge "Régulier" 🔥
+- 7j  → Couleur pseudo jaune/dorée
+- 14j → Badge "Dévot" ⚡
+- 21j → Bordure avatar animée (glow)
+- 30j → Pseudo en dégradé rouge/orange
+- 50j → Animation confetti au clic profil
+- 60j → Pseudo en dégradé violet/bleu
+- 75j → Particules autour de l'avatar
+- 100j → Badge légendaire + pseudo arc-en-ciel animé
+- 150j → Aura dorée pulsante autour de l'avatar
+- 200j → Effet de flammes sur le pseudo
+
+### Routes
+- [ ] GET /api/streaks/me — mon streak + cosmétiques débloqués
+- [ ] GET /api/streaks/:userId — streak public
+- [ ] POST /api/streaks/equip — équiper/déséquiper un cosmétique
+
+### Frontend
+- [ ] Affichage streak dans le profil popup + settings
+- [ ] Rendu des cosmétiques sur les pseudos dans le chat
+- [ ] Page/modal "Mes récompenses" avec tous les paliers
+- [ ] Animation au déblocage d'un nouveau cosmétique

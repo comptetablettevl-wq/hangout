@@ -330,7 +330,25 @@
         </div>
         <div class="modal-body">
           <div class="input-group"><label>Pseudo</label><input id="settings-username-input" class="input" type="text" /></div>
-          <div class="input-group"><label>Statut personnalisé</label><input id="settings-custom-status" class="input" type="text" placeholder="Ce que je fais en ce moment..." maxlength="128" /></div>
+          <div class="input-group"><label>Statut personnalisé</label><input id="settings-custom-status" class="input" type="text" placeholder="Ce que je fais en ce moment…" maxlength="128" /></div>
+          <div class="input-group">
+            <label>Biographie</label>
+            <textarea id="settings-biography" class="input" maxlength="512" placeholder="Parle de toi…" rows="3" style="resize:vertical;font-family:var(--font)"></textarea>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:3px">Max 512 caractères</div>
+          </div>
+          <div class="input-group">
+            <label>Activité</label>
+            <div style="display:flex;gap:8px">
+              <select id="settings-activity-type" class="input" style="width:140px;flex-shrink:0">
+                <option value="none">Aucune</option>
+                <option value="playing">🎮 Joue à</option>
+                <option value="watching">📺 Regarde</option>
+                <option value="listening">🎵 Écoute</option>
+                <option value="competing">🏆 En compétition sur</option>
+              </select>
+              <input id="settings-activity-text" class="input" type="text" placeholder="Nom du jeu, titre…" maxlength="128" />
+            </div>
+          </div>
           <div class="input-group">
             <label>Statut</label>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -510,6 +528,7 @@
 <script src="js/commands.js"></script>
 <script src="js/notifications.js"></script>
 <script src="js/utils.js"></script>
+<script src="js/streaks.js"></script>
 <script src="js/guildSettings.js"></script>
 <script src="js/search.js"></script>
 <script src="js/threads.js"></script>
