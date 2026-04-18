@@ -78,7 +78,7 @@
     <div class="servers-divider"></div>
     <div id="servers-list"></div>
     <div class="servers-divider"></div>
-    <div class="server-pill add-server-btn" id="add-server-btn">
+    <div class="server-pill add-server-btn" id="add-server-btn" onclick="openModal('modal-add-server');switchAddTab('create')">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
       <span class="tooltip">Créer / rejoindre</span>
     </div>
@@ -151,7 +151,7 @@
         <svg width="80" height="80" viewBox="0 0 24 24" fill="var(--accent)" opacity="0.5"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
         <h2>Bienvenue sur Hang Out</h2>
         <p>Rejoins ou crée un serveur pour commencer</p>
-        <button class="btn btn-primary" id="welcome-add-btn">+ Créer un serveur</button>
+        <button class="btn btn-primary" id="welcome-add-btn" onclick="openModal('modal-add-server');switchAddTab('create')">+ Créer un serveur</button>
       </div>
     </div>
 
@@ -255,7 +255,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-add-server')">Annuler</button>
-      <button class="btn btn-primary" id="confirm-add-server-btn">Confirmer</button>
+      <button class="btn btn-primary" id="confirm-add-server-btn" onclick="handleConfirmAddServer()">Confirmer</button>
     </div>
   </div>
 </div>
@@ -393,7 +393,7 @@
 
       <!-- Apparence -->
       <div class="settings-tab-content" data-tab="rewards" style="display:none">
-        <div id="streak-settings-content" style="padding:8px;color:var(--text-muted)">Chargement...</div>
+        <div id="streak-settings-content" style="padding:4px 0;color:var(--text-muted);max-height:none;overflow:visible">Chargement...</div>
       </div>
 
       <div class="settings-tab-content" data-tab="appearance" style="display:none">

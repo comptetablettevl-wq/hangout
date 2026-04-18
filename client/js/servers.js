@@ -215,6 +215,39 @@ window.scrollToMessage = (msgId) => {
   if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.style.background = 'rgba(88,101,242,0.15)'; setTimeout(() => el.style.background = '', 1500); }
 };
 
+
+window.handleConfirmAddServer = async () => {
+  const nameInput = document.getElementById('new-server-name');
+  const codeInput = document.getElementById('invite-code-input');
+  const errEl     = document.getElementById('add-server-error');
+  if (errEl) errEl.textContent = '';
+
+  const isCreate = document.getElementById('tab-create-content')?.style.display !== 'none';
+
+  try {
+    if (isCreate) {
+      const name = nameInput?.value.trim();
+      if (!name) { if (errEl) errEl.textContent = 'Nom requis'; return; }
+      const server = await api.post('/servers', { name });
+      State.servers.push(server);
+      renderServersList();
+      selectServer(server);
+    } else {
+      const code = codeInput?.value.trim();
+      if (!code) { if (errEl) errEl.textContent = 'Code requis'; return; }
+      const server = await api.post('/servers/join/' + code, {});
+      State.servers.push(server);
+      renderServersList();
+      selectServer(server);
+    }
+    closeModal('modal-add-server');
+    if (nameInput) nameInput.value = '';
+    if (codeInput) codeInput.value = '';
+  } catch (err) {
+    if (errEl) errEl.textContent = err.message;
+  }
+};
+
 // ── Listeners boutons créer / rejoindre serveur ───────────
 document.addEventListener('DOMContentLoaded', () => {
   // Bouton + dans la sidebar servers
@@ -229,36 +262,5 @@ document.addEventListener('DOMContentLoaded', () => {
     switchAddTab('create');
   });
 
-  // Confirmer la création / rejoindre
-  document.getElementById('confirm-add-server-btn')?.addEventListener('click', async () => {
-    const nameInput  = document.getElementById('new-server-name');
-    const codeInput  = document.getElementById('join-server-code');
-    const errEl      = document.getElementById('add-server-error');
-    if (errEl) errEl.textContent = '';
-
-    const isCreate = document.getElementById('tab-create-content')?.style.display !== 'none';
-
-    try {
-      if (isCreate) {
-        const name = nameInput?.value.trim();
-        if (!name) { if (errEl) errEl.textContent = 'Nom requis'; return; }
-        const server = await api.post('/servers', { name });
-        State.servers.push(server);
-        renderServersList();
-        selectServer(server);
-      } else {
-        const code = codeInput?.value.trim();
-        if (!code) { if (errEl) errEl.textContent = 'Code requis'; return; }
-        const server = await api.post(`/servers/join/${code}`, {});
-        State.servers.push(server);
-        renderServersList();
-        selectServer(server);
-      }
-      closeModal('modal-add-server');
-      if (nameInput)  nameInput.value  = '';
-      if (codeInput)  codeInput.value  = '';
-    } catch (err) {
-      if (errEl) errEl.textContent = err.message;
-    }
-  });
+  document.getElementById('confirm-add-server-btn')?.addEventListener('click', handleConfirmAddServer);
 });

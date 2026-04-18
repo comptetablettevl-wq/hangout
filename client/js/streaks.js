@@ -174,10 +174,10 @@ window.renderCosmeticsGrid = (data) => {
 
   // Grouper par type
   const groups = {
-    badge:          { label: '🏅 Badges',             items: [] },
-    username:       { label: '✍️ Styles de pseudo',    items: [] },
+    badge:          { label: 'Badges',             items: [] },
+    username:       { label: 'Styles de pseudo',    items: [] },
     avatar:         { label: '🖼️ Effets d\'avatar',    items: [] },
-    profile_effect: { label: '✨ Effets de profil',    items: [] },
+    profile_effect: { label: 'Effets de profil',    items: [] },
   };
 
   catalog.forEach(c => groups[c.type]?.items.push(c));
@@ -354,46 +354,64 @@ window.loadStreakSettings = async () => {
     .filter(c => !data.unlocked?.includes(c.id))
     .sort((a,b) => a.days - b.days)[0];
 
+  const streakIcon = data.current_streak >= 100 ? '★' : data.current_streak >= 30 ? '▲' : '●';
+
   el.innerHTML = `
-    <!-- Header streak -->
-    <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:var(--radius-lg);padding:24px;margin-bottom:20px;text-align:center">
-      <div style="font-size:56px;margin-bottom:8px">${data.current_streak >= 100 ? '🌟' : data.current_streak >= 30 ? '🔥' : '⚡'}</div>
-      <div style="font-size:42px;font-weight:900;color:#fff;font-family:'Space Grotesk',sans-serif;line-height:1">${data.current_streak}</div>
-      <div style="font-size:14px;color:rgba(255,255,255,0.6);margin-top:4px">jours consécutifs</div>
-      <div style="display:flex;justify-content:center;gap:32px;margin-top:16px">
-        <div><div style="font-size:20px;font-weight:700;color:#fff">${data.longest_streak}</div><div style="font-size:11px;color:rgba(255,255,255,0.5)">Record</div></div>
-        <div><div style="font-size:20px;font-weight:700;color:#fff">${data.total_days}</div><div style="font-size:11px;color:rgba(255,255,255,0.5)">Total jours</div></div>
+    <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:var(--radius-lg);padding:16px;margin-bottom:16px;text-align:center">
+      <div style="font-size:32px;font-weight:900;color:#fff;font-family:'Space Grotesk',sans-serif;line-height:1">${data.current_streak}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:2px">jours consécutifs</div>
+      <div style="display:flex;justify-content:center;gap:24px;margin-top:10px">
+        <div><div style="font-size:16px;font-weight:700;color:#fff">${data.longest_streak}</div><div style="font-size:10px;color:rgba(255,255,255,0.5)">Record</div></div>
+        <div><div style="font-size:16px;font-weight:700;color:#fff">${data.total_days}</div><div style="font-size:10px;color:rgba(255,255,255,0.5)">Total</div></div>
       </div>
     </div>
 
-    <!-- Prochain débloquage -->
     ${nextCosmetic ? `
-      <div style="background:var(--bg-elevated);border-radius:var(--radius);padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:14px;border:1px solid var(--border)">
-        <span style="font-size:28px">${nextCosmetic.emoji}</span>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:4px">Prochain : ${nextCosmetic.name}</div>
-          <div style="height:6px;background:var(--bg-active);border-radius:3px;overflow:hidden">
-            <div style="height:100%;width:${Math.round(Math.min(100,(data.current_streak/nextCosmetic.days)*100))}%;background:linear-gradient(90deg,var(--accent),#7289da);border-radius:3px;transition:width 1s ease"></div>
-          </div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:3px">${data.current_streak} / ${nextCosmetic.days} jours</div>
-        </div>
-      </div>` : '<div style="text-align:center;color:var(--green);padding:12px;font-size:14px;font-weight:600">🏆 Tous les cosmétiques sont débloqués !</div>'}
+    <div style="background:var(--bg-elevated);border-radius:var(--radius);padding:10px 12px;margin-bottom:16px;border:1px solid var(--border)">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Prochain débloquage</div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:6px">${escapeHtml(nextCosmetic.name)} — ${nextCosmetic.days} jours</div>
+      <div style="height:4px;background:var(--bg-active);border-radius:2px;overflow:hidden">
+        <div style="height:100%;width:${Math.round(Math.min(100,(data.current_streak/nextCosmetic.days)*100))}%;background:var(--accent);border-radius:2px"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:3px">${data.current_streak} / ${nextCosmetic.days}</div>
+    </div>` : '<div style="color:var(--green);font-size:13px;margin-bottom:12px">Tous les cosmétiques débloqués ✓</div>'}
 
-    <!-- Grille cosmétiques -->
     <div id="settings-cosmetics-grid"></div>`;
 
-  // Rendre la grille (réutilise renderCosmeticsGrid)
-  const tempBody = document.getElementById('settings-cosmetics-grid');
-  if (tempBody) {
-    const mockBody = { innerHTML: '' };
-    // Réutiliser le rendu de la modal
-    const originalBody = document.getElementById('streak-modal-body');
-    const tempDiv = document.createElement('div');
-    tempDiv.id = 'streak-modal-body';
-    tempDiv.style.display = 'none';
-    document.body.appendChild(tempDiv);
-    renderCosmeticsGrid(data);
-    tempBody.innerHTML = tempDiv.innerHTML;
-    tempDiv.remove();
+  // Rendre la grille directement
+  const grid = document.getElementById('settings-cosmetics-grid');
+  if (!grid) return;
+
+  const catalog = data.cosmetics || [];
+  const groups  = { badge: 'Badges', username: 'Styles de pseudo', avatar: 'Effets d'avatar', profile_effect: 'Effets de profil' };
+
+  let html = '';
+  for (const [type, label] of Object.entries(groups)) {
+    const items = catalog.filter(c => c.type === type);
+    if (!items.length) continue;
+    html += `<div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">${label}</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${items.map(c => {
+          const unlocked  = data.unlocked?.includes(c.id);
+          const equippedU = data.equipped_username_cosmetic === c.id;
+          const equippedA = data.equipped_avatar_cosmetic   === c.id;
+          const equipped  = equippedU || equippedA;
+          const progress  = Math.round(Math.min(100, (data.current_streak / c.days) * 100));
+          return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg-elevated);border-radius:var(--radius-sm);border:1px solid ${unlocked?'var(--border-strong)':'var(--border)'};opacity:${unlocked?1:0.6}">
+            <span style="font-size:18px;flex-shrink:0">${c.emoji}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:500">${escapeHtml(c.name)}</div>
+              <div style="font-size:11px;color:var(--text-muted)">${c.days} jours${unlocked ? ' — débloqué' : ''}</div>
+              ${!unlocked ? `<div style="height:3px;background:var(--bg-active);border-radius:2px;margin-top:4px;overflow:hidden"><div style="height:100%;width:${progress}%;background:var(--accent);border-radius:2px"></div></div>` : ''}
+            </div>
+            ${equipped ? '<span style="font-size:11px;color:var(--accent);font-weight:600;flex-shrink:0">Équipé</span>' : ''}
+            ${unlocked && !equipped && (c.type==='username'||c.type==='avatar') ? `<button class="btn btn-primary btn-sm" style="flex-shrink:0;font-size:11px;padding:3px 8px" onclick="equipCosmetic('${c.id}','${c.type}')">Équiper</button>` : ''}
+            ${equipped ? `<button class="btn btn-secondary btn-sm" style="flex-shrink:0;font-size:11px;padding:3px 8px" onclick="unequipCosmetic('${c.type}')">Retirer</button>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
   }
+  grid.innerHTML = html;
 };
