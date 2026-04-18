@@ -1,5 +1,6 @@
 // ── Load servers ──────────────────────────────────────────
 window.loadServers = async () => {
+  if (!State.token) return; // Pas encore authentifié
   try {
     State.servers = await api.get('/servers');
     renderServersList();

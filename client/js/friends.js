@@ -2,6 +2,7 @@
 window.FriendsState = { friends: [], pending: [], sent: [] };
 
 window.loadFriends = async () => {
+  if (!State.token) return; // Pas encore authentifié
   try {
     const data = await api.get('/friends');
     FriendsState.friends = data.friends;

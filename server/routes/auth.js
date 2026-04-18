@@ -29,7 +29,19 @@ router.post('/login', authLimiter, validate(schemas.login), async (req, res) => 
     const user = await User.findOne({ where: { email } });
     if (!user || !(await user.comparePassword(password)))
       return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
-    res.json({ token: sign(user.id), user: user.toPublic() });
+    // Mettre à jour le streak en arrière-plan
+    let streakInfo = null;
+    try {
+      const { streak, newCosmetics } = await updateLoginStreak(user.id);
+      streakInfo = {
+        current_streak: streak.current_streak,
+        longest_streak: streak.longest_streak,
+        total_days:     streak.total_days,
+        new_cosmetics:  newCosmetics,
+      };
+    } catch (_) {}
+
+    res.json({ token: sign(user.id), user: user.toPublic(), streak: streakInfo });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

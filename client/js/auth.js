@@ -25,10 +25,11 @@ document.getElementById('login-btn').addEventListener('click', async () => {
   btn.textContent = 'Connexion...';
 
   try {
-    const { token, user } = await api.post('/auth/login', { email, password });
-    State.token = token;
-    State.user = user;
-    localStorage.setItem('ho_token', token);
+    const data = await api.post('/auth/login', { email, password });
+    State.token = data.token;
+    State.user  = data.user;
+    localStorage.setItem('ho_token', data.token);
+    if (typeof initStreakFromLogin === 'function') initStreakFromLogin(data.streak);
     showApp();
   } catch (err) {
     errEl.textContent = err.message;
