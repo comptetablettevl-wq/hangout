@@ -148,8 +148,10 @@ document.addEventListener('keydown', (e) => {
   }
   const input = document.getElementById('message-input');
   const active = document.activeElement;
-  if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey &&
-      active !== input && !active.closest('input,textarea,select') && State.currentChannel) {
+  if (input && e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey &&
+      active && active !== input &&
+      !(active.closest && active.closest('input,textarea,select,[contenteditable]')) &&
+      State.currentChannel) {
     input.focus();
   }
 });

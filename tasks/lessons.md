@@ -40,3 +40,5 @@
 2025-04 | CSP helmet bloque les onclick="..." inline — script-src-attr 'none' par défaut | Toujours ajouter scriptSrcAttr: ["'unsafe-inline'"] dans la config helmet pour les apps HTML vanilla
 
 2025-04 | Apostrophe non échappée dans une string JS ('Effets d'avatar') = SyntaxError qui bloque l'exécution du fichier ET de tout ce qui suit dans Chrome | Toujours utiliser node --check sur chaque fichier JS après édition, et préférer les templates \`...\` ou les doubles quotes pour les strings contenant des apostrophes
+
+2025-04 | document.activeElement peut être null (quand rien n'a le focus) — appeler .closest() dessus sans vérifier crash le script entier et casse tous les onclick suivants | Toujours tester activeElement && activeElement.closest avant d'accéder à ses méthodes
